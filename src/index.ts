@@ -71,7 +71,7 @@ export const release = async () => {
         initial: curVersion,
       });
     } else {
-      targetVersion = release.match(/\((.*)\)/)![1];
+      targetVersion = (release.match(/\((.*)\)/) || [])[1];
     }
   }
 
