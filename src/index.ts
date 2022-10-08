@@ -8,6 +8,9 @@ import { green, red } from 'kolorist';
 import type { Options } from 'execa';
 import type { ReleaseType } from 'semver';
 
+import { configParse } from './config';
+import type { Config } from './config';
+
 const PKG = 'package.json';
 // get cwd
 const root = process.cwd();
@@ -22,19 +25,26 @@ const curVersion = pkgInfo.version;
 const run = (bin: string, args: string[], opts: Options = {}) =>
   execa(bin, args, { stdio: 'inherit', ...opts });
 const log = (message: any) => console.log(message);
+const infoLog = (message: string) => log(green(message));
 const incVersion = (release: ReleaseType) => inc(curVersion, release);
 const updateVersion = (version: string) => {
-  writeFileSync(rootPkg, {
-    ...pkgInfo,
-    version,
-  });
+  writeFileSync(
+    rootPkg,
+    JSON.stringify(
+      {
+        ...pkgInfo,
+        version,
+      },
+      null,
+      2
+    ) + '\n'
+  );
 };
+const config: Config = configParse();
 
 const versionIncrement: ReleaseType[] = ['patch', 'minor', 'major'];
 
 const CUSTOM = 'custom';
-
-const ReleaseBranch = ['master'];
 
 export const getCurBranch = async () => {
   const { stdout } = await run('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
@@ -44,10 +54,11 @@ export const getCurBranch = async () => {
 };
 
 export const release = async () => {
-  log(green('\n Release start...'));
+  infoLog('\n Release start...');
   // branch check
   const curBranch = await getCurBranch();
-  if (!ReleaseBranch.includes(curBranch)) {
+  const { releaseBranch } = config;
+  if (!releaseBranch.includes(curBranch)) {
     throw new Error(`branch ${curBranch} is not allowed to be released!`);
   }
   let targetVersion = args._[0];
@@ -88,23 +99,29 @@ export const release = async () => {
   });
 
   if (!yes) return;
-
-  // build target
-  log(green('\nStart building...'));
-  await run('npm', ['run', 'build']);
-
+  const { build, changelog } = config.scripts;
   // update version
   updateVersion(targetVersion);
 
+  // build target
+  if (build) {
+    infoLog('\nStart building...');
+    await run('npm', ['run', build]);
+    infoLog('\nBuild Done...');
+  }
+
   // gen changelog
-  log(green('\nGenerate changelog...'));
-  await run('npm', ['run', 'changelog']);
+  if (changelog) {
+    infoLog('\nGenerate changelog...');
+    await run('npm', ['run', changelog]);
+    infoLog('\nChangelog done...');
+  }
 
   // get diff
   const { stdout: diff } = await run('git', ['diff'], { stdio: 'pipe' });
   if (diff) {
     // add && commit
-    log(green('\nCommit change...'));
+    infoLog('\nCommit change...');
     await run('git', ['add', '-A']);
     await run('git', ['commit', '-m', `release: ${targetVersion}`]);
   } else {
@@ -112,7 +129,27 @@ export const release = async () => {
   }
 
   // push
-  await run('git', ['tag', `v${targetVersion}`]);
+  const { tag, releaseUser, release } = config;
+  if (tag) {
+    await run('git', ['tag', `v${targetVersion}`]);
+  }
   await run('git', ['push', 'origin', `${curBranch}`]);
-  log(green('\nDone!'));
+  if (release) {
+    infoLog('\nStart publish...');
+    if (releaseUser && releaseUser.length) {
+      // get current npm user
+      const { stdout: curUser } = await run('npm', ['whoami'], {
+        stdio: 'pipe',
+      });
+      if (!releaseUser.includes(curUser)) {
+        log(red(`\nCurrent user (${curUser}) is not allowed to publish...`));
+      } else {
+        await run('npm', ['publish'], { stdio: 'pipe' });
+        infoLog('\nPublish successful...');
+      }
+    }
+  }
+  infoLog('\nDone!');
 };
+
+release();

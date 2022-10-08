@@ -1,5 +1,5 @@
-import { resolve } from 'path';
-import { existsSync } from 'fs';
+import { resolve, extname } from 'path';
+import { existsSync, readFileSync } from 'fs';
 
 const DEFAULT_CONFIG_FILES = [
   'release.pkg.json',
@@ -7,13 +7,30 @@ const DEFAULT_CONFIG_FILES = [
   'release.pkg.ts',
 ];
 
+const enum CONFIG_EXT {
+  JSON = '.json',
+  JS = '.js',
+  TS = '.ts',
+}
+
+const DefaultConfig = {
+  releaseBranch: ['master', 'main'],
+  scripts: {
+    build: 'build',
+    changelog: 'changelog',
+  },
+  tag: true,
+};
+
 export interface Config {
   releaseBranch: string[];
+  releaseUser?: string[];
   scripts: {
     build: string;
     changelog: string;
   };
   tag?: boolean;
+  release?: boolean;
 }
 
 const getConfigFilePath = (root: string): string | undefined => {
@@ -23,16 +40,18 @@ const getConfigFilePath = (root: string): string | undefined => {
   }
 };
 
-export const configParse = (root: string = process.cwd()): Config | null => {
-  const resolvedPath = getConfigFilePath(root);
-  if (!resolvedPath) return null;
+const getConfigFromFile = (resolvedPath: string): Config | null => {
+  const ext = extname(resolvedPath);
+  if (CONFIG_EXT.JS === ext) return require(resolvedPath);
+  if (CONFIG_EXT.JSON === ext)
+    return JSON.parse(readFileSync(resolvedPath).toString());
 
-  // const config =
-  return {
-    releaseBranch: [],
-    scripts: {
-      build: 'build',
-      changelog: 'changelog',
-    },
-  };
+  return null;
+};
+
+export const configParse = (root: string = process.cwd()): Config => {
+  const resolvedPath = getConfigFilePath(root);
+  if (!resolvedPath) return DefaultConfig;
+
+  return getConfigFromFile(resolvedPath) || DefaultConfig;
 };
