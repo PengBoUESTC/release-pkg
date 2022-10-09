@@ -1,3 +1,12 @@
+## [1.0.3](https://github.com/PengBoUESTC/release-pkg/compare/v1.0.2...v1.0.3) (2022-10-09)
+
+
+### Features
+
+* add node version info ([7fd7606](https://github.com/PengBoUESTC/release-pkg/commit/7fd76060e1f4977766c79de79609dccd960483fd))
+
+
+
 ## 1.0.2 (2022-10-08)
 
 
