@@ -1,3 +1,12 @@
+## [1.1.1](https://github.com/PengBoUESTC/release-pkg/compare/v1.1.0...v1.1.1) (2022-10-14)
+
+
+### Features
+
+* types ([86b4ea4](https://github.com/PengBoUESTC/release-pkg/commit/86b4ea4c96718eae95dda79d4add1ba13eabeb65))
+
+
+
 # [1.1.0](https://github.com/PengBoUESTC/release-pkg/compare/v1.0.4...v1.1.0) (2022-10-14)
 
 
