@@ -1,3 +1,12 @@
+# [1.1.0](https://github.com/PengBoUESTC/release-pkg/compare/v1.0.4...v1.1.0) (2022-10-14)
+
+
+### Features
+
+* add defineConfig ([cd75fee](https://github.com/PengBoUESTC/release-pkg/commit/cd75fee375fe184b6009fd71f652dbed24012ec6))
+
+
+
 ## [1.0.4](https://github.com/PengBoUESTC/release-pkg/compare/v1.0.3...v1.0.4) (2022-10-14)
 
 
