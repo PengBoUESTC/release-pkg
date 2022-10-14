@@ -1,17 +1,20 @@
-import { resolve, extname } from 'path';
-import { existsSync, readFileSync } from 'fs';
+import { cwd } from 'process';
+import load from '@proload/core';
+import type { Config as Pre_Config } from '@proload/core';
 
-const DEFAULT_CONFIG_FILES = [
-  'release.pkg.json',
-  'release.pkg.js',
-  'release.pkg.ts',
-];
-
-const enum CONFIG_EXT {
-  JSON = '.json',
-  JS = '.js',
-  TS = '.ts',
+function preloadPlugin() {
+  return {
+    name: '@proload/plugin-tsm',
+    extensions: ['ts', 'tsx', 'cts', 'mts'],
+    async register(fileName: string) {
+      if (/\.([cm]ts|tsx?)$/.test(fileName)) {
+        await require('tsm');
+      }
+    },
+  };
 }
+
+load.use([preloadPlugin()]);
 
 const DefaultConfig = {
   releaseBranch: ['master', 'main'],
@@ -33,25 +36,10 @@ export interface Config {
   release?: boolean;
 }
 
-const getConfigFilePath = (root: string): string | undefined => {
-  for (const file of DEFAULT_CONFIG_FILES) {
-    const filePath = resolve(root, file);
-    if (existsSync(filePath)) return filePath;
-  }
-};
+export const loadConfig = async (namespace: string): Promise<Config> => {
+  const config = (await load(namespace, { cwd: cwd() })) as
+    | Pre_Config<Config>
+    | undefined;
 
-const getConfigFromFile = (resolvedPath: string): Config | null => {
-  const ext = extname(resolvedPath);
-  if (CONFIG_EXT.JS === ext) return require(resolvedPath);
-  if (CONFIG_EXT.JSON === ext)
-    return JSON.parse(readFileSync(resolvedPath).toString());
-
-  return null;
-};
-
-export const configParse = (root: string = process.cwd()): Config => {
-  const resolvedPath = getConfigFilePath(root);
-  if (!resolvedPath) return DefaultConfig;
-
-  return getConfigFromFile(resolvedPath) || DefaultConfig;
+  return config?.value || DefaultConfig;
 };

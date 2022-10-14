@@ -16,9 +16,37 @@ var process$2 = require('node:process');
 var url = require('node:url');
 var os = require('os');
 var os$1 = require('node:os');
+var module$1 = require('module');
+var url$1 = require('url');
 
 function _interopDefaultLegacy(e) {
   return e && typeof e === 'object' && 'default' in e ? e : { default: e };
+}
+
+function _interopNamespace(e) {
+  if (e && e.__esModule) return e;
+  var n = Object.create(null);
+  if (e) {
+    Object.keys(e).forEach(function (k) {
+      if (k !== 'default') {
+        var d = Object.getOwnPropertyDescriptor(e, k);
+        Object.defineProperty(
+          n,
+          k,
+          d.get
+            ? d
+            : {
+                enumerable: true,
+                get: function () {
+                  return e[k];
+                },
+              }
+        );
+      }
+    });
+  }
+  n['default'] = e;
+  return Object.freeze(n);
 }
 
 var require$$0__default$2 = /*#__PURE__*/ _interopDefaultLegacy(require$$0$2);
@@ -410,7 +438,7 @@ function requireSymbols$1() {
   return symbols.exports;
 }
 
-const isObject = (val) =>
+const isObject$1 = (val) =>
   val !== null && typeof val === 'object' && !Array.isArray(val);
 
 /* eslint-disable no-control-regex */
@@ -572,7 +600,7 @@ const create = () => {
   };
 
   colors.theme = (custom) => {
-    if (!isObject(custom))
+    if (!isObject$1(custom))
       throw new TypeError('Expected theme to be an object');
     for (let name of Object.keys(custom)) {
       colors.alias(name, custom[name]);
@@ -5740,7 +5768,7 @@ function requireTypes() {
   return types;
 }
 
-const assert$1 = require$$0__default$2['default'];
+const assert$2 = require$$0__default$2['default'];
 const Events = require$$0__default$1['default'];
 const utils = utils$1;
 
@@ -5784,7 +5812,7 @@ class Enquirer extends Events {
       for (let key of Object.keys(type)) this.register(key, type[key]);
       return this;
     }
-    assert$1.equal(typeof fn, 'function', 'expected a function');
+    assert$2.equal(typeof fn, 'function', 'expected a function');
     let name = type.toLowerCase();
     if (fn.prototype instanceof this.Prompt) {
       this.prompts[name] = fn;
@@ -5843,7 +5871,7 @@ class Enquirer extends Events {
 
     if (!type) return this.answers[name];
 
-    assert$1(this.prompts[type], `Prompt "${type}" is not registered`);
+    assert$2(this.prompts[type], `Prompt "${type}" is not registered`);
 
     let prompt = new this.prompts[type](opts);
     let value = get(this.answers, name);
@@ -10463,7 +10491,7 @@ if (!processOk(process$1)) {
     return function () {};
   };
 } else {
-  var assert = require$$0__default$2['default'];
+  var assert$1 = require$$0__default$2['default'];
   var signals = requireSignals();
   var isWin = /^win/i.test(process$1.platform);
 
@@ -10496,14 +10524,14 @@ if (!processOk(process$1)) {
     if (!processOk(commonjsGlobal.process)) {
       return function () {};
     }
-    assert.equal(
+    assert$1.equal(
       typeof cb,
       'function',
       'a callback must be provided for exit handler'
     );
 
     if (loaded === false) {
-      load();
+      load$1();
     }
 
     var ev = 'exit';
@@ -10587,7 +10615,7 @@ if (!processOk(process$1)) {
 
   var loaded = false;
 
-  var load = function load() {
+  var load$1 = function load() {
     if (loaded || !processOk(commonjsGlobal.process)) {
       return;
     }
@@ -10611,7 +10639,7 @@ if (!processOk(process$1)) {
     process$1.emit = processEmit;
     process$1.reallyExit = processReallyExit;
   };
-  signalExit.exports.load = load;
+  signalExit.exports.load = load$1;
 
   var originalProcessReallyExit = process$1.reallyExit;
   var processReallyExit = function processReallyExit(code) {
@@ -11323,9 +11351,531 @@ function kolorist(start, end, level = 1 /* ansi */) {
 const red = kolorist(31, 39);
 const green = kolorist(32, 39);
 
+const toStats$1 = require$$2.promisify(require$$0$3.stat);
+const toRead$1 = require$$2.promisify(require$$0$3.readdir);
+
+async function escalade(start, callback) {
+  let dir = require$$0$4.resolve('.', start);
+  let tmp,
+    stats = await toStats$1(dir);
+
+  if (!stats.isDirectory()) {
+    dir = require$$0$4.dirname(dir);
+  }
+
+  while (true) {
+    tmp = await callback(dir, await toRead$1(dir));
+    if (tmp) return require$$0$4.resolve(dir, tmp);
+    dir = require$$0$4.dirname((tmp = dir));
+    if (tmp === dir) break;
+  }
+}
+
+var isMergeableObject = function isMergeableObject(value) {
+  return isNonNullObject(value) && !isSpecial(value);
+};
+
+function isNonNullObject(value) {
+  return !!value && typeof value === 'object';
+}
+
+function isSpecial(value) {
+  var stringValue = Object.prototype.toString.call(value);
+
+  return (
+    stringValue === '[object RegExp]' ||
+    stringValue === '[object Date]' ||
+    isReactElement(value)
+  );
+}
+
+// see https://github.com/facebook/react/blob/b5ac963fb791d1298e7f396236383bc955f916c1/src/isomorphic/classic/element/ReactElement.js#L21-L25
+var canUseSymbol = typeof Symbol === 'function' && Symbol.for;
+var REACT_ELEMENT_TYPE = canUseSymbol ? Symbol.for('react.element') : 0xeac7;
+
+function isReactElement(value) {
+  return value.$$typeof === REACT_ELEMENT_TYPE;
+}
+
+function emptyTarget(val) {
+  return Array.isArray(val) ? [] : {};
+}
+
+function cloneUnlessOtherwiseSpecified(value, options) {
+  return options.clone !== false && options.isMergeableObject(value)
+    ? deepmerge(emptyTarget(value), value, options)
+    : value;
+}
+
+function defaultArrayMerge(target, source, options) {
+  return target.concat(source).map(function (element) {
+    return cloneUnlessOtherwiseSpecified(element, options);
+  });
+}
+
+function getMergeFunction(key, options) {
+  if (!options.customMerge) {
+    return deepmerge;
+  }
+  var customMerge = options.customMerge(key);
+  return typeof customMerge === 'function' ? customMerge : deepmerge;
+}
+
+function getEnumerableOwnPropertySymbols(target) {
+  return Object.getOwnPropertySymbols
+    ? Object.getOwnPropertySymbols(target).filter(function (symbol) {
+        return target.propertyIsEnumerable(symbol);
+      })
+    : [];
+}
+
+function getKeys(target) {
+  return Object.keys(target).concat(getEnumerableOwnPropertySymbols(target));
+}
+
+function propertyIsOnObject(object, property) {
+  try {
+    return property in object;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Protects from prototype poisoning and unexpected merging up the prototype chain.
+function propertyIsUnsafe(target, key) {
+  return (
+    propertyIsOnObject(target, key) && // Properties are safe to merge if they don't exist in the target yet,
+    !(
+      Object.hasOwnProperty.call(target, key) && // unsafe if they exist up the prototype chain,
+      Object.propertyIsEnumerable.call(target, key)
+    )
+  ); // and also unsafe if they're nonenumerable.
+}
+
+function mergeObject(target, source, options) {
+  var destination = {};
+  if (options.isMergeableObject(target)) {
+    getKeys(target).forEach(function (key) {
+      destination[key] = cloneUnlessOtherwiseSpecified(target[key], options);
+    });
+  }
+  getKeys(source).forEach(function (key) {
+    if (propertyIsUnsafe(target, key)) {
+      return;
+    }
+
+    if (
+      propertyIsOnObject(target, key) &&
+      options.isMergeableObject(source[key])
+    ) {
+      destination[key] = getMergeFunction(key, options)(
+        target[key],
+        source[key],
+        options
+      );
+    } else {
+      destination[key] = cloneUnlessOtherwiseSpecified(source[key], options);
+    }
+  });
+  return destination;
+}
+
+function deepmerge(target, source, options) {
+  options = options || {};
+  options.arrayMerge = options.arrayMerge || defaultArrayMerge;
+  options.isMergeableObject = options.isMergeableObject || isMergeableObject;
+  // cloneUnlessOtherwiseSpecified is added to `options` so that custom arrayMerge()
+  // implementations can use it. The caller may not replace it.
+  options.cloneUnlessOtherwiseSpecified = cloneUnlessOtherwiseSpecified;
+
+  var sourceIsArray = Array.isArray(source);
+  var targetIsArray = Array.isArray(target);
+  var sourceAndTargetTypesMatch = sourceIsArray === targetIsArray;
+
+  if (!sourceAndTargetTypesMatch) {
+    return cloneUnlessOtherwiseSpecified(source, options);
+  } else if (sourceIsArray) {
+    return options.arrayMerge(target, source, options);
+  } else {
+    return mergeObject(target, source, options);
+  }
+}
+
+deepmerge.all = function deepmergeAll(array, options) {
+  if (!Array.isArray(array)) {
+    throw new Error('first argument should be an array');
+  }
+
+  return array.reduce(function (prev, next) {
+    return deepmerge(prev, next, options);
+  }, {});
+};
+
+var deepmerge_1 = deepmerge;
+
+var cjs = deepmerge_1;
+
+let require$2 = module$1.createRequire(
+  typeof document === 'undefined'
+    ? new (require('u' + 'rl').URL)('file:' + __filename).href
+    : (document.currentScript && document.currentScript.src) ||
+        new URL('vendor.js', document.baseURI).href
+);
+
+/**
+ *
+ * @param {string} filePath
+ */
+async function requireOrImport(filePath, { middleware = [] } = {}) {
+  await Promise.all(middleware.map((plugin) => plugin.register(filePath)));
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      let mdl = require$2(filePath);
+      resolve(mdl);
+    } catch (e) {
+      if (e.code === 'ERR_REQUIRE_ESM') {
+        const fileUrl = url$1.pathToFileURL(filePath).toString();
+        try {
+          const mdl = await (function (t) {
+            return Promise.resolve().then(function () {
+              return /*#__PURE__*/ _interopNamespace(require(t));
+            });
+          })(fileUrl);
+          return resolve(mdl);
+        } catch (e) {
+          reject(e);
+        }
+      }
+      reject(e);
+    }
+  });
+}
+
+/**
+ * @type import('./error.cjs').ProloadError
+ */
+
+class ProloadError extends Error {
+  constructor(opts = {}) {
+    super(opts.message);
+    this.name = 'ProloadError';
+    this.code = opts.code || 'ERR_PROLOAD_INVALID';
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+}
+
+/**
+ * @type import('./error.cjs').assert
+ */
+function assert(bool, message, code) {
+  if (bool) return;
+  if (message instanceof Error) throw message;
+  throw new ProloadError({ message, code });
+}
+var assert_1 = assert;
+
+const toStats = require$$2.promisify(require$$0$3.stat);
+const toRead = require$$2.promisify(require$$0$3.readdir);
+const toReadFile = require$$2.promisify(require$$0$3.readFile);
+const require$1 = module$1.createRequire(
+  typeof document === 'undefined'
+    ? new (require('u' + 'rl').URL)('file:' + __filename).href
+    : (document.currentScript && document.currentScript.src) ||
+        new URL('vendor.js', document.baseURI).href
+);
+
+let merge = cjs;
+const defaultExtensions = ['js', 'cjs', 'mjs'];
+const defaultFileNames = ['[name].config'];
+
+const validNames = (namespace) => {
+  const extensionPlugins = load.plugins.filter((p) =>
+    Array.isArray(p.extensions)
+  );
+  const fileNamePlugins = load.plugins.filter((p) =>
+    Array.isArray(p.fileNames)
+  );
+  const validExtensions = [...defaultExtensions].concat(
+    ...extensionPlugins.map((p) => p.extensions)
+  );
+  const validFileNames = [...defaultFileNames].concat(
+    ...fileNamePlugins.map((p) => p.fileNames)
+  );
+
+  const result = validFileNames
+    .map((fileName) => fileName.replace('[name]', namespace))
+    .reduce((acc, fileName) => {
+      return [...acc].concat(
+        ...validExtensions.map(
+          (ext) => `${fileName}${ext ? '.' + ext.replace(/^\./, '') : ''}`
+        )
+      );
+    }, []);
+
+  return result;
+};
+
+/**
+ * @param {any} val
+ * @returns {val is Record<any, any>}
+ */
+const isObject = (val) =>
+  val != null && typeof val === 'object' && Array.isArray(val) === false;
+
+const requireOrImportWithMiddleware = (filePath) => {
+  let registerPlugins = load.plugins.filter(
+    (plugin) => typeof plugin.register !== 'undefined'
+  );
+  let transformPlugins = load.plugins.filter(
+    (plugin) => typeof plugin.transform !== 'undefined'
+  );
+  return requireOrImport(filePath, { middleware: registerPlugins }).then(
+    async (mdl) =>
+      Promise.all(
+        transformPlugins.map((plugin) => {
+          return Promise.resolve(plugin.transform(mdl)).then((result) => {
+            if (result) mdl = result;
+          });
+        })
+      ).then(() => mdl)
+  );
+};
+
+/**
+ *
+ * @param {string} namespace
+ * @param {{ filePath: string, extension: string }} opts
+ * @returns {Promise<{ filePath: string, value: string }>}
+ */
+async function resolveExtension(namespace, { filePath, extension }) {
+  let resolvedPath;
+  if (extension.startsWith('./') || extension.startsWith('../')) {
+    if (require$$0$4.extname(extension) === '') {
+      resolvedPath = require$$0$4.resolve(
+        require$$0$4.dirname(filePath),
+        `${extension}${require$$0$4.extname(filePath)}`
+      );
+    }
+    if (!require$$0$3.existsSync(resolvedPath)) resolvedPath = null;
+
+    if (!resolvedPath) {
+      resolvedPath = require$$0$4.resolve(
+        require$$0$4.dirname(filePath),
+        extension
+      );
+    }
+    if (!require$$0$3.existsSync(resolvedPath)) resolvedPath = null;
+  }
+  if (!resolvedPath) {
+    const pkg = require$1.resolve(extension, {
+      cwd: require$$0$4.dirname(filePath),
+    });
+    const accepted = validNames(namespace);
+    for (const config of accepted) {
+      try {
+        resolvedPath = `${pkg}/${config}`;
+        if (resolvedPath && require$$0$3.existsSync(resolvedPath)) {
+          break;
+        } else {
+          resolvedPath = null;
+        }
+      } catch (e) {}
+    }
+  }
+  if (!resolvedPath) {
+    resolvedPath = require$1.resolve(extension, {
+      cwd: require$$0$4.dirname(filePath),
+    });
+  }
+  if (!resolvedPath) return;
+  const value = await requireOrImportWithMiddleware(resolvedPath);
+
+  return { filePath: resolvedPath, value };
+}
+
+async function resolveExtensions(
+  namespace,
+  { filePath, value: raw, context },
+  acc = {}
+) {
+  let value = typeof raw === 'function' ? await raw(context) : raw;
+  if (Array.isArray(value)) return value;
+
+  assert_1(
+    isObject(value),
+    `${namespace} configuration expects an "object" but encountered ${value}`
+  );
+  acc = merge(acc, value);
+  if (!('extends' in value)) return acc;
+
+  assert_1(
+    Array.isArray(value.extends),
+    `${namespace} "extends" must be an array`
+  );
+
+  const configs = await Promise.all(
+    value.extends.map((extension) =>
+      resolveExtension(namespace, { filePath, extension }).then((config) =>
+        resolveExtensions(namespace, { ...config, context }, acc)
+      )
+    )
+  );
+
+  for (const config of configs) {
+    acc = merge(acc, config);
+  }
+
+  delete acc.extends;
+
+  return acc;
+}
+
+/**
+ *
+ * @param {string} namespace
+ * @param {import('../index').LoadOptions} opts
+ */
+async function resolveConfig(namespace, opts = {}) {
+  const accepted = validNames(namespace);
+  const { context, accept } = opts;
+  const input = opts.cwd || process.cwd();
+
+  let mustExist = true;
+  if (typeof opts.mustExist !== 'undefined') {
+    mustExist = opts.mustExist;
+  }
+  if (typeof opts.merge === 'function') {
+    merge = opts.merge;
+  }
+
+  let filePath;
+  if (typeof opts.filePath === 'string') {
+    const absPath = opts.filePath.startsWith('.')
+      ? require$$0$4.resolve(opts.filePath, input)
+      : opts.filePath;
+    if (require$$0$3.existsSync(absPath)) {
+      filePath = absPath;
+    }
+  } else {
+    filePath = await escalade(input, async (dir, names) => {
+      if (accept) {
+        for (const n of names) {
+          if (accept(n, { directory: dir }) === true) return n;
+        }
+      }
+
+      for (const n of accepted) {
+        if (names.includes(n)) return n;
+      }
+
+      if (names.includes('config')) {
+        let d = require$$0$4.join(dir, 'config');
+        let stats = await toStats(d);
+        let entries = [];
+        if (stats.isDirectory()) {
+          entries = await toRead(d);
+          for (const n of accepted) {
+            if (entries.includes(n)) return require$$0$4.join('config', n);
+          }
+        }
+      }
+
+      if (names.includes('package.json')) {
+        let file = require$$0$4.join(dir, 'package.json');
+        let contents = await toReadFile(file).then((r) =>
+          JSON.parse(r.toString())
+        );
+        if (contents[namespace]) return 'package.json';
+      }
+    });
+  }
+
+  if (mustExist) {
+    assert_1(
+      !!filePath,
+      `Unable to resolve a ${namespace} configuration`,
+      'ERR_PROLOAD_NOT_FOUND'
+    );
+  } else if (!filePath) {
+    return;
+  }
+  return filePath;
+}
+
+/**
+ *
+ * @param {string} namespace
+ * @param {import('../index').LoadOptions} opts
+ */
+async function load(namespace, opts = {}) {
+  const { context } = opts;
+  let mustExist = true;
+  if (typeof opts.mustExist !== 'undefined') {
+    mustExist = opts.mustExist;
+  }
+  const filePath = await resolveConfig(namespace, opts);
+  if (mustExist) {
+    assert_1(
+      !!filePath,
+      `Unable to resolve a ${namespace} configuration`,
+      'ERR_PROLOAD_NOT_FOUND'
+    );
+  } else if (!filePath) {
+    return;
+  }
+
+  let rawValue = await requireOrImportWithMiddleware(filePath);
+  if (filePath.endsWith('package.json')) rawValue = rawValue[namespace];
+  // Important: "empty" config files will be returned as `Module {}`
+  // We should handle them here
+  if (rawValue && !(rawValue instanceof Object)) {
+    if (mustExist) {
+      assert_1(
+        true,
+        `Resolved a ${namespace} configuration, but no configuration was exported`,
+        'ERR_PROLOAD_NOT_FOUND'
+      );
+    } else {
+      return;
+    }
+  }
+  const resolvedValue = await resolveExtensions(namespace, {
+    filePath,
+    value: rawValue,
+    context,
+  });
+
+  return {
+    filePath,
+    raw: rawValue,
+    value: resolvedValue,
+  };
+}
+
+const defaultPlugins = [
+  {
+    name: '@proload/extract-default',
+    transform(mdl) {
+      if (mdl.default && Object.keys(mdl).length === 1) {
+        return mdl.default;
+      }
+      return mdl;
+    },
+  },
+];
+/** @type import('../index').Plugin[] */
+load.plugins = defaultPlugins;
+load.use = (plugins) => {
+  load.plugins = [...load.plugins, ...plugins];
+};
+
 exports.enquirer = enquirer;
 exports.execa = execa;
 exports.green = green;
+exports.load = load;
 exports.minimist = minimist;
 exports.red = red;
 exports.semver = semver;

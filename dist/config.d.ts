@@ -8,4 +8,4 @@ export interface Config {
   tag?: boolean;
   release?: boolean;
 }
-export declare const configParse: (root?: string) => Config;
+export declare const loadConfig: (namespace: string) => Promise<Config>;

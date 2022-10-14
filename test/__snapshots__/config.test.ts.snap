@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`test config parse 1`] = `
+{
+  "releaseBranch": [
+    "master",
+    "main",
+  ],
+  "releaseUser": [
+    "pengbo-study",
+  ],
+  "scripts": {
+    "build": "build",
+    "changelog": "changelog",
+  },
+  "tag": true,
+}
+`;
