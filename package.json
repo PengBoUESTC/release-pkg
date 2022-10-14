@@ -33,6 +33,7 @@
       "prettier --write"
     ]
   },
+  "types": "dist/index.d.ts",
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
   },
