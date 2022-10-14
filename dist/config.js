@@ -72,14 +72,21 @@ const DefaultConfig = {
   },
   tag: true,
 };
-const loadConfig = (namespace) =>
+const loadConfig = (namespace, options = {}) =>
   __awaiter(void 0, void 0, void 0, function* () {
-    const config = yield vendor.load(namespace, { cwd: process.cwd() });
+    const config = yield vendor.load(
+      namespace,
+      Object.assign({ cwd: process.cwd() }, options)
+    );
     return (
       (config === null || config === void 0 ? void 0 : config.value) ||
       DefaultConfig
     );
   });
+function defineConfig(config) {
+  return config;
+}
 
 exports.__awaiter = __awaiter;
+exports.defineConfig = defineConfig;
 exports.loadConfig = loadConfig;

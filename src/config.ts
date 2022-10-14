@@ -1,6 +1,6 @@
 import { cwd } from 'process';
 import load from '@proload/core';
-import type { Config as Pre_Config } from '@proload/core';
+import type { Config as Pre_Config, LoadOptions } from '@proload/core';
 
 function preloadPlugin() {
   return {
@@ -36,10 +36,17 @@ export interface Config {
   release?: boolean;
 }
 
-export const loadConfig = async (namespace: string): Promise<Config> => {
-  const config = (await load(namespace, { cwd: cwd() })) as
+export const loadConfig = async (
+  namespace: string,
+  options: LoadOptions<Record<any, any>> = {}
+): Promise<Config> => {
+  const config = (await load(namespace, { cwd: cwd(), ...options })) as
     | Pre_Config<Config>
     | undefined;
 
   return config?.value || DefaultConfig;
 };
+
+export function defineConfig(config: Config): Config {
+  return config;
+}

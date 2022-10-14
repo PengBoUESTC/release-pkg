@@ -1,4 +1,4 @@
-import { defineConfig } from './dist/config';
+import { defineConfig } from '../../dist/config';
 
 export default defineConfig({
   releaseBranch: ['master', 'main'], // which git branch can be released

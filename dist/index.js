@@ -28,4 +28,5 @@ require('process');
 release.release();
 
 exports.release = release.release;
+exports.defineConfig = config.defineConfig;
 exports.loadConfig = config.loadConfig;

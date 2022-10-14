@@ -1,3 +1,4 @@
+import type { LoadOptions } from '@proload/core';
 export interface Config {
   releaseBranch: string[];
   releaseUser?: string[];
@@ -8,4 +9,8 @@ export interface Config {
   tag?: boolean;
   release?: boolean;
 }
-export declare const loadConfig: (namespace: string) => Promise<Config>;
+export declare const loadConfig: (
+  namespace: string,
+  options?: LoadOptions<Record<any, any>>
+) => Promise<Config>;
+export declare function defineConfig(config: Config): Config;

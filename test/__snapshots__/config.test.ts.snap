@@ -16,3 +16,20 @@ exports[`test config parse 1`] = `
   "tag": true,
 }
 `;
+
+exports[`test config parse 2`] = `
+{
+  "releaseBranch": [
+    "master",
+    "main",
+  ],
+  "releaseUser": [
+    "pengbo-study",
+  ],
+  "scripts": {
+    "build": "build",
+    "changelog": "changelog",
+  },
+  "tag": true,
+}
+`;
