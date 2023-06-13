@@ -15,6 +15,7 @@ const run = (bin, args, opts = {}) =>
   vendor.execa(bin, args, Object.assign({ stdio: 'inherit' }, opts));
 const log = (message) => console.log(message);
 const infoLog = (message) => log(vendor.green(message));
+const warnLog = (message) => log(vendor.yellow(message));
 const incVersion = (release) => vendor.semver.inc(curVersion, release);
 const updateVersion = (version) => {
   require$$0$1.writeFileSync(
@@ -97,10 +98,19 @@ const release = () =>
       log(vendor.red('\nNothing changed...'));
     }
     const { tag, releaseUser, release } = config;
-    if (tag) {
-      yield run('git', ['tag', `v${targetVersion}`]);
+    try {
+      if (tag) {
+        yield run('git', ['tag', `v${targetVersion}`]);
+      }
+    } catch (e) {
+      return log(vendor.red(`\nGit Tag error... \n${e.message}`));
     }
-    yield run('git', ['push', 'origin', `${curBranch}`]);
+    try {
+      yield run('git', ['push', 'origin', `${curBranch}`]);
+    } catch (e) {
+      log(vendor.red('\nGit Push stoped...'));
+      release && warnLog('\nPkg release stoped...');
+    }
     if (release) {
       infoLog('\nStart publish...');
       if (releaseUser && releaseUser.length) {

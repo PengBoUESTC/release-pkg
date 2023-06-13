@@ -11350,6 +11350,7 @@ function kolorist(start, end, level = 1 /* ansi */) {
 }
 const red = kolorist(31, 39);
 const green = kolorist(32, 39);
+const yellow = kolorist(33, 39);
 
 const toStats$1 = require$$2.promisify(require$$0$3.stat);
 const toRead$1 = require$$2.promisify(require$$0$3.readdir);
@@ -11879,3 +11880,4 @@ exports.load = load;
 exports.minimist = minimist;
 exports.red = red;
 exports.semver = semver;
+exports.yellow = yellow;
