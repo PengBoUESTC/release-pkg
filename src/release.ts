@@ -4,7 +4,7 @@ import minimist from 'minimist';
 import { prompt } from 'enquirer';
 import { inc, valid } from 'semver';
 import { execa } from 'execa';
-import { green, red } from 'kolorist';
+import { green, red, yellow } from 'kolorist';
 import type { Options } from 'execa';
 import type { ReleaseType } from 'semver';
 
@@ -26,6 +26,7 @@ const run = (bin: string, args: string[], opts: Options = {}) =>
   execa(bin, args, { stdio: 'inherit', ...opts });
 const log = (message: any) => console.log(message);
 const infoLog = (message: string) => log(green(message));
+const warnLog = (message: string) => log(yellow(message));
 const incVersion = (release: ReleaseType) => inc(curVersion, release);
 const updateVersion = (version: string) => {
   writeFileSync(
@@ -133,10 +134,20 @@ export const release = async () => {
 
   // push
   const { tag, releaseUser, release } = config;
-  if (tag) {
-    await run('git', ['tag', `v${targetVersion}`]);
+  try {
+    if (tag) {
+      await run('git', ['tag', `v${targetVersion}`]);
+    }
+  } catch (e: any) {
+    return log(red(`\nGit Tag error... \n${e.message}`));
   }
-  await run('git', ['push', 'origin', `${curBranch}`]);
+  try {
+    await run('git', ['push', 'origin', `${curBranch}`]);
+  } catch (e) {
+    log(red('\nGit Push stoped...'));
+    release && warnLog('\nPkg release stoped...');
+  }
+
   if (release) {
     infoLog('\nStart publish...');
     if (releaseUser && releaseUser.length) {
